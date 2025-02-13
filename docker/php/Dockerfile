@@ -28,6 +28,15 @@ RUN apk add --update --no-cache autoconf g++ imagemagick imagemagick-dev libtool
     && docker-php-ext-enable imagick \
     && apk del autoconf g++ libtool make pcre-dev
 
+RUN apk add --update yaml-dev
+RUN apk add --no-cache --virtual .build-deps \
+    g++ make autoconf
+
+RUN pecl channel-update pecl.php.net
+RUN pecl install yaml && docker-php-ext-enable yaml
+
+RUN apk del autoconf .build-deps
+
 # Install the PHP graphics library
 RUN docker-php-ext-configure gd \
     --with-freetype \
@@ -53,8 +62,11 @@ RUN docker-php-ext-install pdo
 RUN docker-php-ext-install pdo_pgsql
 
 # install XDebug
-RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS
+RUN apk add --update linux-headers
+RUN pecl install xdebug-3.4.1
+RUN docker-php-ext-enable xdebug
+RUN apk del .build-deps
 
 #####################################
 # Composer
@@ -67,7 +79,7 @@ WORKDIR /var/www
 #####################################
 # Cleanup
 #####################################
-RUN apk del --no-network .build-deps
+RUN apk del --no-network
 RUN rm -rf /tmp/* /var/tmp/*
 
 #CMD ["supervisord", "-c", "/etc/supervisor.d/supervisord.ini"]
